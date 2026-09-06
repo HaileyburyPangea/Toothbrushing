@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 import { records, studyCountries, filterOptions, FilterKey, CountryRecord } from "./data";
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
@@ -253,42 +253,41 @@ export default function App() {
       </div>
 
       {/* Map */}
-      <div className="flex-1 px-4 pb-2 min-h-0" style={{ minHeight: 380 }}>
+      <div className="flex-1 px-4 pb-2 min-h-0">
         <div className="max-w-7xl mx-auto h-full rounded-2xl overflow-hidden border" style={{ borderColor: "rgba(45,212,191,0.1)", background: "#080f20" }}>
           <ComposableMap
             projection="geoNaturalEarth1"
-            style={{ width: "100%", height: "100%", minHeight: 380 }}
+            projectionConfig={{ scale: 153 }}
+            style={{ width: "100%", height: "100%" }}
           >
-            <ZoomableGroup zoom={1}>
-              <Geographies geography={GEO_URL}>
-                {({ geographies }) =>
-                  geographies.map(geo => {
-                    const isoNum = Number(geo.id);
-                    const inStudy = isoNum in studyCountries;
-                    const isHovered = hoveredIso === isoNum && inStudy;
-                    const fill = getCountryFill(isoNum);
+            <Geographies geography={GEO_URL}>
+              {({ geographies }) =>
+                geographies.map(geo => {
+                  const isoNum = Number(geo.id);
+                  const inStudy = isoNum in studyCountries;
+                  const isHovered = hoveredIso === isoNum && inStudy;
+                  const fill = getCountryFill(isoNum);
 
-                    return (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        fill={isHovered ? "#5eead4" : fill}
-                        stroke="#0d1a30"
-                        strokeWidth={0.5}
-                        style={{
-                          default: { outline: "none", cursor: inStudy ? "pointer" : "default" },
-                          hover: { outline: "none" },
-                          pressed: { outline: "none" },
-                        }}
-                        onMouseEnter={() => inStudy && setHoveredIso(isoNum)}
-                        onMouseLeave={() => setHoveredIso(null)}
-                        onClick={() => inStudy && setSelectedIso(isoNum)}
-                      />
-                    );
-                  })
-                }
-              </Geographies>
-            </ZoomableGroup>
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      fill={isHovered ? "#5eead4" : fill}
+                      stroke="#0d1a30"
+                      strokeWidth={0.5}
+                      style={{
+                        default: { outline: "none", cursor: inStudy ? "pointer" : "default" },
+                        hover: { outline: "none" },
+                        pressed: { outline: "none" },
+                      }}
+                      onMouseEnter={() => inStudy && setHoveredIso(isoNum)}
+                      onMouseLeave={() => setHoveredIso(null)}
+                      onClick={() => inStudy && setSelectedIso(isoNum)}
+                    />
+                  );
+                })
+              }
+            </Geographies>
           </ComposableMap>
         </div>
       </div>
