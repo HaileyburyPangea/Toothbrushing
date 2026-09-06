@@ -41,7 +41,6 @@ declare module "react-simple-maps" {
   }
 
   export const ComposableMap: ComponentType<ComposableMapProps>;
-  export const ZoomableGroup: ComponentType<ZoomableGroupProps>;
   export const Geographies: ComponentType<GeographiesProps>;
   export const Geography: ComponentType<GeographyProps>;
 }
