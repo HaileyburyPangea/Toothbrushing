@@ -21,12 +21,12 @@ function getCountryValue(isoNumeric: number, key: FilterKey): string | boolean |
 
 // Color mapping for categorical values
 const CATEGORICAL_PALETTES: Record<string, Record<string, string>> = {
-  technique: { MB: "#2dd4bf", Bass: "#818cf8", null: "#374151" },
+  technique: { "Modified Bass": "#2dd4bf", Bass: "#818cf8", null: "#374151" },
   frequencyPerDay: { "2": "#2dd4bf", "≥2": "#fbbf24" },
-  durationMinutes: { "2": "#2dd4bf", "2–3": "#818cf8", "2-3": "#818cf8" },
-  strokeTechnique: { C: "#2dd4bf", U: "#818cf8", B: "#fbbf24", "C/U": "#5eead4", "B/C": "#a78bfa", "C / B/C": "#a78bfa" },
-  toothbrushType: { S: "#2dd4bf", M: "#fbbf24", "S/M": "#818cf8" },
-  replaceAfterMonths: { "3": "#2dd4bf", "3–4": "#fbbf24", "3-4": "#fbbf24", "2–3": "#818cf8", "2-3": "#818cf8" },
+  durationMinutes: { "2": "#2dd4bf", "2–3": "#818cf8"},
+  strokeTechnique: { Circular: "#2dd4bf", "Up & Down": "#818cf8", "Back & Forth": "#fbbf24", "C/U": "#5eead4", "B/C": "#a78bfa", "C / B/C": "#a78bfa" },
+  toothbrushType: { Soft: "#2dd4bf", Medium: "#fbbf24", "Soft or Medium": "#818cf8" },
+  replaceAfterMonths: { "3": "#2dd4bf", "3-4": "#fbbf24", "2-3": "#818cf8" },
 };
 
 function getColorForValue(key: FilterKey, value: string | boolean | null, type: "boolean" | "categorical"): string {
@@ -195,7 +195,7 @@ export default function App() {
   const getCountryFill = (isoNumeric: number) => {
     if (!(isoNumeric in studyCountries)) return "#0d1a30";
     const val = isoValueMap[isoNumeric];
-    if (val === null || val === undefined) return "#1e2d4a";
+    if (val === null || val === undefined) return "#a8c3f9";
     return getColorForValue(activeFilter, val, currentFilter.type);
   };
 
