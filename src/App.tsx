@@ -4,6 +4,31 @@ import { records, studyCountries, filterOptions, FilterKey, CountryRecord } from
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
+function toIsoNumeric(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getGeographyIsoNumeric(geo: { id?: unknown; properties?: Record<string, unknown> }): number | null {
+  const candidates = [
+    geo.id,
+    geo.properties?.ISO_N3,
+    geo.properties?.iso_n3,
+    geo.properties?.ADM0_A3_UN,
+    geo.properties?.UN_A3,
+  ];
+
+  for (const candidate of candidates) {
+    const isoNumeric = toIsoNumeric(candidate);
+    if (isoNumeric !== null) return isoNumeric;
+  }
+  return null;
+}
+
 // Aggregate: if country has multiple records, combine their values
 function getCountryValue(isoNumeric: number, key: FilterKey): string | boolean | null {
   const countryRecords = records.filter(r => r.isoNumeric === isoNumeric);
@@ -263,10 +288,10 @@ export default function App() {
             <Geographies geography={GEO_URL}>
               {({ geographies }) =>
                 geographies.map(geo => {
-                  const isoNum = Number(geo.id);
-                  const inStudy = isoNum in studyCountries;
-                  const isHovered = hoveredIso === isoNum && inStudy;
-                  const fill = getCountryFill(isoNum);
+                  const isoNum = getGeographyIsoNumeric(geo);
+                  const inStudy = isoNum !== null && isoNum in studyCountries;
+                  const isHovered = isoNum !== null && hoveredIso === isoNum && inStudy;
+                  const fill = isoNum === null ? "#0d1a30" : getCountryFill(isoNum);
 
                   return (
                     <Geography
@@ -280,9 +305,9 @@ export default function App() {
                         hover: { outline: "none" },
                         pressed: { outline: "none" },
                       }}
-                      onMouseEnter={() => inStudy && setHoveredIso(isoNum)}
+                      onMouseEnter={() => inStudy && isoNum !== null && setHoveredIso(isoNum)}
                       onMouseLeave={() => setHoveredIso(null)}
-                      onClick={() => inStudy && setSelectedIso(isoNum)}
+                      onClick={() => inStudy && isoNum !== null && setSelectedIso(isoNum)}
                     />
                   );
                 })
