@@ -1,8 +1,14 @@
 import { useState, useCallback, useMemo } from "react";
-import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import { records, studyCountries, filterOptions, FilterKey, CountryRecord } from "./data";
 
-const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
+
+// Small countries not reliably renderable as polygons at world scale — shown as markers instead
+const SMALL_COUNTRY_MARKERS: Array<{ isoNumeric: number; coordinates: [number, number] }> = [
+  { isoNumeric: 702, coordinates: [103.82, 1.35] },   // Singapore
+  { isoNumeric: 242, coordinates: [178.0, -17.7] },   // Fiji
+];
 
 // Aggregate: if country has multiple records, combine their values
 function getCountryValue(isoNumeric: number, key: FilterKey): string | boolean | null {
@@ -21,12 +27,12 @@ function getCountryValue(isoNumeric: number, key: FilterKey): string | boolean |
 
 // Color mapping for categorical values
 const CATEGORICAL_PALETTES: Record<string, Record<string, string>> = {
-  technique: { "Modified Bass": "#2dd4bf", Bass: "#818cf8", null: "#374151" },
+  technique: { MB: "#2dd4bf", Bass: "#818cf8", null: "#374151" },
   frequencyPerDay: { "2": "#2dd4bf", "≥2": "#fbbf24" },
-  durationMinutes: { "2": "#2dd4bf", "2–3": "#818cf8"},
-  strokeTechnique: { Circular: "#2dd4bf", "Up & Down": "#818cf8", "Back & Forth": "#fbbf24", "C/U": "#5eead4", "B/C": "#a78bfa", "C / B/C": "#a78bfa" },
-  toothbrushType: { Soft: "#2dd4bf", Medium: "#fbbf24", "Soft or Medium": "#818cf8" },
-  replaceAfterMonths: { "3": "#2dd4bf", "3-4": "#fbbf24", "2-3": "#818cf8" },
+  durationMinutes: { "2": "#2dd4bf", "2–3": "#818cf8", "2-3": "#818cf8" },
+  strokeTechnique: { C: "#2dd4bf", U: "#818cf8", B: "#fbbf24", "C/U": "#5eead4", "B/C": "#a78bfa", "C / B/C": "#a78bfa" },
+  toothbrushType: { S: "#2dd4bf", M: "#fbbf24", "S/M": "#818cf8" },
+  replaceAfterMonths: { "3": "#2dd4bf", "3–4": "#fbbf24", "3-4": "#fbbf24", "2–3": "#818cf8", "2-3": "#818cf8" },
 };
 
 function getColorForValue(key: FilterKey, value: string | boolean | null, type: "boolean" | "categorical"): string {
@@ -195,7 +201,7 @@ export default function App() {
   const getCountryFill = (isoNumeric: number) => {
     if (!(isoNumeric in studyCountries)) return "#0d1a30";
     const val = isoValueMap[isoNumeric];
-    if (val === null || val === undefined) return "#a8c3f9";
+    if (val === null || val === undefined) return "#1e2d4a";
     return getColorForValue(activeFilter, val, currentFilter.type);
   };
 
@@ -288,6 +294,29 @@ export default function App() {
                 })
               }
             </Geographies>
+
+            {SMALL_COUNTRY_MARKERS.map(({ isoNumeric, coordinates }) => {
+              const inStudy = isoNumeric in studyCountries;
+              const isHovered = hoveredIso === isoNumeric;
+              const fill = getCountryFill(isoNumeric);
+              return (
+                <Marker
+                  key={isoNumeric}
+                  coordinates={coordinates}
+                  onMouseEnter={() => setHoveredIso(isoNumeric)}
+                  onMouseLeave={() => setHoveredIso(null)}
+                  onClick={() => inStudy && setSelectedIso(isoNumeric)}
+                >
+                  <circle
+                    r={isHovered ? 7 : 5.5}
+                    fill={isHovered ? "#5eead4" : fill}
+                    stroke="#0d1a30"
+                    strokeWidth={1.5}
+                    style={{ cursor: "pointer", transition: "r 0.15s, fill 0.15s" }}
+                  />
+                </Marker>
+              );
+            })}
           </ComposableMap>
         </div>
       </div>
