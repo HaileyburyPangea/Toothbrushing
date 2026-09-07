@@ -40,7 +40,17 @@ declare module "react-simple-maps" {
     onClick?: (event: MouseEvent<SVGPathElement>) => void;
   }
 
+  export interface MarkerProps {
+    coordinates: [number, number];
+    children?: ReactNode;
+    onClick?: () => void;
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
+    style?: React.CSSProperties;
+  }
+
   export const ComposableMap: ComponentType<ComposableMapProps>;
   export const Geographies: ComponentType<GeographiesProps>;
   export const Geography: ComponentType<GeographyProps>;
+  export const Marker: ComponentType<MarkerProps>;
 }
