@@ -201,7 +201,7 @@ export default function App() {
   const getCountryFill = (isoNumeric: number) => {
     if (!(isoNumeric in studyCountries)) return "#0d1a30";
     const val = isoValueMap[isoNumeric];
-    if (val === null || val === undefined) return "#1e2d4a";
+    if (val === null || val === undefined) return "#374151";
     return getColorForValue(activeFilter, val, currentFilter.type);
   };
 
