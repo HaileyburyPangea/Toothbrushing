@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
 import { records, studyCountries, filterOptions, FilterKey, CountryRecord } from "./data";
 
-const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json";
+const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 // Small countries not reliably renderable as polygons at world scale — shown as markers instead
 const SMALL_COUNTRY_MARKERS: Array<{ isoNumeric: number; coordinates: [number, number] }> = [
