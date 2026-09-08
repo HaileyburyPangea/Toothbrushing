@@ -4,71 +4,81 @@ import { records, studyCountries, filterOptions, FilterKey, CountryRecord } from
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
-// Small countries not reliably renderable as polygons at world scale — shown as markers instead
-const SMALL_COUNTRY_MARKERS: Array<{ isoNumeric: number; coordinates: [number, number] }> = [
-  { isoNumeric: 702, coordinates: [103.82, 1.35] },   // Singapore
-  { isoNumeric: 242, coordinates: [178.0, -17.7] },   // Fiji
+// Small countries not reliably renderable as polygons at 110m resolution — shown as labeled markers
+const SMALL_COUNTRY_MARKERS: Array<{ isoNumeric: number; coordinates: [number, number]; label: string }> = [
+  { isoNumeric: 702, coordinates: [103.82, 1.35],  label: "Singapore" },
+  { isoNumeric: 242, coordinates: [174.0, -17.5],  label: "Fiji" },
 ];
 
-// Aggregate: if country has multiple records, combine their values
+// For booleans: true if any record says yes. For categoricals: first non-null value.
 function getCountryValue(isoNumeric: number, key: FilterKey): string | boolean | null {
   const countryRecords = records.filter(r => r.isoNumeric === isoNumeric);
   if (!countryRecords.length) return null;
   const vals = countryRecords.map(r => r[key as keyof CountryRecord]);
-  // If any is truthy/non-null, return that
   const nonNull = vals.filter(v => v !== null && v !== undefined);
   if (!nonNull.length) return null;
-  // For booleans, true wins
-  if (typeof nonNull[0] === "boolean") return nonNull.some(v => v === true) ? true : false;
-  // For categoricals, pick unique values
-  const unique = [...new Set(nonNull.map(String))];
-  return unique.join(" / ");
+  if (typeof nonNull[0] === "boolean") return nonNull.some(v => v === true);
+  return String(nonNull[0]);
 }
 
-// Color mapping for categorical values
-const CATEGORICAL_PALETTES: Record<string, Record<string, string>> = {
-  technique: { MB: "#2dd4bf", Bass: "#818cf8", null: "#374151" },
-  frequencyPerDay: { "2": "#2dd4bf", "≥2": "#fbbf24" },
-  durationMinutes: { "2": "#2dd4bf", "2–3": "#818cf8", "2-3": "#818cf8" },
-  strokeTechnique: { C: "#2dd4bf", U: "#818cf8", B: "#fbbf24", "C/U": "#5eead4", "B/C": "#a78bfa", "C / B/C": "#a78bfa" },
-  toothbrushType: { S: "#2dd4bf", M: "#fbbf24", "S/M": "#818cf8" },
-  replaceAfterMonths: { "3": "#2dd4bf", "3–4": "#fbbf24", "3-4": "#fbbf24", "2–3": "#818cf8", "2-3": "#818cf8" },
+// Each category: data values that map to it, display label, color
+interface CategoryDef { values: string[]; label: string; color: string }
+
+const CATEGORY_DEFS: Partial<Record<FilterKey, CategoryDef[]>> = {
+  technique: [
+    { values: ["MB"],   label: "Modified Bass", color: "#2dd4bf" },
+    { values: ["Bass"], label: "Bass",           color: "#818cf8" },
+  ],
+  frequencyPerDay: [
+    { values: ["2"],  label: "Twice daily",    color: "#2dd4bf" },
+    { values: ["≥2"], label: "At least twice daily", color: "#fbbf24" },
+  ],
+  durationMinutes: [
+    { values: ["2"],        label: "2 minutes",   color: "#2dd4bf" },
+    { values: ["2–3","2-3"], label: "2–3 minutes", color: "#818cf8" },
+  ],
+  strokeTechnique: [
+    { values: ["C"],         label: "Circular",        color: "#2dd4bf" },
+    { values: ["U"],         label: "Up-and-down",      color: "#818cf8" },
+    { values: ["B"],         label: "Back-and-forth",   color: "#fbbf24" },
+    { values: ["C/U","B/C"], label: "Combination",      color: "#a78bfa" },
+  ],
+  toothbrushType: [
+    { values: ["S"],   label: "Soft",            color: "#2dd4bf" },
+    { values: ["M"],   label: "Medium",          color: "#fbbf24" },
+    { values: ["S/M"], label: "Soft or Medium",  color: "#818cf8" },
+  ],
+  replaceAfterMonths: [
+    { values: ["3"],           label: "3 months",   color: "#2dd4bf" },
+    { values: ["3–4","3-4"],   label: "3–4 months", color: "#fbbf24" },
+    { values: ["2–3","2-3"],   label: "2–3 months", color: "#818cf8" },
+  ],
 };
+
+function matchCategory(defs: CategoryDef[], raw: string): CategoryDef | undefined {
+  return defs.find(d => d.values.includes(raw));
+}
 
 function getColorForValue(key: FilterKey, value: string | boolean | null, type: "boolean" | "categorical"): string {
   if (value === null || value === undefined) return "#1a2744";
-  if (type === "boolean") {
-    return value === true ? "#2dd4bf" : "#374151";
-  }
-  // categorical
-  const palette = CATEGORICAL_PALETTES[key];
-  if (!palette) return "#2dd4bf";
-  const strVal = String(value);
-  // Try exact match first
-  if (palette[strVal]) return palette[strVal];
-  // Try partial match
-  for (const [k, c] of Object.entries(palette)) {
-    if (strVal.includes(k) || k.includes(strVal)) return c;
-  }
-  return "#818cf8";
+  if (type === "boolean") return value === true ? "#2dd4bf" : "#374151";
+  const defs = CATEGORY_DEFS[key];
+  if (!defs) return "#2dd4bf";
+  const match = matchCategory(defs, String(value));
+  return match ? match.color : "#374151";
 }
 
 function getLegendItems(key: FilterKey, type: "boolean" | "categorical") {
+  const tail = [
+    { label: "Not mentioned", color: "#374151" },
+    { label: "Not in study",  color: "#0d1a30" },
+  ];
   if (type === "boolean") {
-    return [
-      { label: "Recommended", color: "#2dd4bf" },
-      { label: "Not mentioned", color: "#374151" },
-      { label: "Not in study", color: "#0f1e3d" },
-    ];
+    return [{ label: "Recommended", color: "#2dd4bf" }, ...tail];
   }
-  const palette = CATEGORICAL_PALETTES[key];
-  if (!palette) return [];
-  const items = Object.entries(palette)
-    .filter(([k]) => k !== "null")
-    .map(([k, color]) => ({ label: k, color }));
-  items.push({ label: "Not mentioned", color: "#374151" });
-  items.push({ label: "Not in study", color: "#0f1e3d" });
-  return items;
+  const defs = CATEGORY_DEFS[key];
+  if (!defs) return tail;
+  return [...defs.map(d => ({ label: d.label, color: d.color })), ...tail];
 }
 
 function FieldRow({ label, value }: { label: string; value: string | boolean | null }) {
@@ -201,7 +211,7 @@ export default function App() {
   const getCountryFill = (isoNumeric: number) => {
     if (!(isoNumeric in studyCountries)) return "#0d1a30";
     const val = isoValueMap[isoNumeric];
-    if (val === null || val === undefined) return "#374151";
+    if (val === null || val === undefined) return "#1e2d4a";
     return getColorForValue(activeFilter, val, currentFilter.type);
   };
 
@@ -295,7 +305,7 @@ export default function App() {
               }
             </Geographies>
 
-            {SMALL_COUNTRY_MARKERS.map(({ isoNumeric, coordinates }) => {
+            {SMALL_COUNTRY_MARKERS.map(({ isoNumeric, coordinates, label }) => {
               const inStudy = isoNumeric in studyCountries;
               const isHovered = hoveredIso === isoNumeric;
               const fill = getCountryFill(isoNumeric);
@@ -310,10 +320,23 @@ export default function App() {
                   <circle
                     r={isHovered ? 7 : 5.5}
                     fill={isHovered ? "#5eead4" : fill}
-                    stroke="#0d1a30"
+                    stroke="#060e1e"
                     strokeWidth={1.5}
                     style={{ cursor: "pointer", transition: "r 0.15s, fill 0.15s" }}
                   />
+                  <text
+                    textAnchor="middle"
+                    y={-10}
+                    style={{
+                      fontFamily: "DM Sans, sans-serif",
+                      fontSize: 7,
+                      fill: isHovered ? "#5eead4" : "#94a3b8",
+                      pointerEvents: "none",
+                      userSelect: "none",
+                    }}
+                  >
+                    {label}
+                  </text>
                 </Marker>
               );
             })}
